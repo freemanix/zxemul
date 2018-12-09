@@ -1,0 +1,5 @@
+#system epoc img
+#set epocinit=iplib
+#model small jpi
+#compile %main
+#link %main

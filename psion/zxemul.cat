@@ -1,0 +1,144 @@
+
+IMAGE		zxemul
+
+EXTERNAL	olib
+EXTERNAL	hwim
+
+INCLUDE		hwimman.g
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxws	wserv
+
+Window server
+
+{
+	REPLACE	ws_do_dial
+	REPLACE	ws_dyn_init
+	REPLACE	ws_foreground
+	REPLACE	ws_background
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxwin	win
+ 
+Main client window
+
+{
+	REPLACE	wn_init
+	REPLACE	wn_draw
+	REPLACE	wn_key
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxstat	bwin
+
+Left status window
+
+{
+	REPLACE	wn_init
+	REPLACE	wn_draw
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxhelp	win
+
+ZX keys help window
+
+{
+	REPLACE	wn_init
+	REPLACE	wn_draw
+	REPLACE	wn_key
+
+	PROPERTY
+	{
+		char *			keyMap;	
+		UINT			bmpId;
+		HANDLE			bmpSeg;
+	}
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxsplash win
+
+Splash window
+
+{
+	REPLACE	wn_init
+	REPLACE	wn_draw
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxcom	comman
+
+Command manager
+
+{
+	REPLACE	com_mode_change
+	REPLACE	com_file_change
+	REPLACE	com_exit
+	
+	ADD	com_new
+	ADD	com_open
+	ADD	com_save_as
+	ADD	com_save
+	ADD	com_set_mode
+	ADD	com_show_keys
+	ADD	com_prefs
+	ADD	com_reset
+	ADD	com_nmi
+	ADD	com_about
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	zxeng	active
+
+Emulation engine
+
+{
+	REPLACE	ao_init
+	REPLACE	ao_run	
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	filedlg	dlgbox
+
+File open/save dialog box
+
+{
+	REPLACE	dl_dyn_init
+	REPLACE	dl_changed
+	REPLACE	dl_key
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	modedlg	dlgbox
+
+Set view mode dialog box
+
+{
+	REPLACE dl_key
+	REPLACE	dl_dyn_init
+}
+
+! ----------------------------------------------------------------------------
+
+CLASS	prefdlg	dlgbox
+
+Set preferences dialog box
+
+{
+	REPLACE	dl_key
+	REPLACE	dl_dyn_init
+}
+
+! ----------------------------------------------------------------------------
+

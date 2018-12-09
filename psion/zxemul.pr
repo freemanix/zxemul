@@ -1,0 +1,31 @@
+#system epoc img
+#set epocinit=iplib
+#model small jpi
+
+#set version=0x009B
+#set priority=0x80
+#set heapsize=0x80
+
+#pragma option(uns_char=>on)
+#pragma link_option(share_const=>on)
+#pragma warn(wclt=>on,wfnd=>on,wpnd=>on,wnrv=>on)
+#pragma debug(vid=>off)
+#pragma define(EPOC=>1,JPIC=>1)
+
+#pragma link(olib.lib)
+#pragma link(hwim.lib)
+#pragma link(zxemul.obj)
+
+#run "re  %main" 
+#run "rs  %main"
+#run "rch %main"
+
+#compile zxhwim.c
+#compile zxdev.c
+#compile zxkey.c
+#compile zxscreen.c
+#compile zxsnap.c
+#compile zxpic.c
+
+#link %prjname
+

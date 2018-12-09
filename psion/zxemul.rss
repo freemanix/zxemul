@@ -1,0 +1,532 @@
+
+#include <hwim.rh>
+#include <hwim.rg>
+#include <sc_.rsg>
+#include "zxemul.rg"
+
+STRUCT	ZXKEY
+{
+	TEXT	let;	/* Letter */
+	TEXT	sym;	/* Symbol */
+	TEXT	key;	/* Keyword */
+	TEXT	up;		/* Upper keyword */
+	TEXT	low;	/* Lower keyword */
+}
+
+STRUCT	ZXKEYMAP
+{
+    STRUCT  items[40];
+}
+
+RESOURCE WSERV_INFO zxemul_accs
+{
+	menbar_id = zxemul_menubar;
+	first_com = O_COM_EXIT;
+	accel = 
+	{ 
+		'x',	/* Exit */
+		'n',	/* New file */
+		'o',	/* Open file */
+		'a', 	/* Save as */
+		's',	/* Save */
+		'm',	/* Set mode */
+		'k',	/* Show keyboard */
+		'q',	/* Set preferences */
+		'r',	/* Reset */
+		'i',	/* Generate NMI */
+		'b'		/* About ZXemul */
+	};
+}
+
+RESOURCE MENU_BAR zxemul_menubar
+{
+	items = 
+	{	
+		MENU_BAR_ITEM
+		{
+			menu_id = file_menu;
+			mb_item = "File";
+		},
+
+		MENU_BAR_ITEM
+		{
+			menu_id = view_menu;
+			mb_item = "View";
+		},			
+
+		MENU_BAR_ITEM
+		{
+			menu_id = special_menu;
+			mb_item = "Special";
+		}
+	};
+}
+
+RESOURCE MENU file_menu
+{
+	items = 
+	{
+		MENU_ITEM
+		{
+			com_id  = O_COM_NEW;
+			mn_item = "New file";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_OPEN;
+			mn_item = "Open file";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_SAVE_AS;
+			mn_item = "Save as";	
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_SAVE;
+			mn_item = "Save";
+		}	
+	};
+}
+
+RESOURCE MENU view_menu
+{
+	items = 
+	{
+		MENU_ITEM
+		{
+			com_id  = O_COM_SET_MODE;
+			mn_item = "Set mode";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_SHOW_KEYS;
+			mn_item = "Show keyboard";
+		}
+	};
+}
+
+RESOURCE MENU special_menu
+{
+	items =
+	{
+		MENU_ITEM
+		{
+			com_id  = O_COM_PREFS | BREAK_LINE_FOLLOWS;
+			mn_item = "Set preferences";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_RESET;
+			mn_item = "Reset";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_NMI | BREAK_LINE_FOLLOWS;
+			mn_item = "Generate NMI";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_ABOUT;
+			mn_item = "About ZXemul";
+		},
+
+		MENU_ITEM
+		{
+			com_id  = O_COM_EXIT;
+			mn_item = "Exit";
+		}
+	};
+}
+
+RESOURCE MENU file_types
+{
+	items = 
+	{
+		CHOICE_ITEM { str = "Z80"; },
+		CHOICE_ITEM { str = "SNA"; }
+	};
+}
+
+RESOURCE MENU color_modes
+{
+	items =
+	{
+		CHOICE_ITEM { str = "Ink";  },
+		CHOICE_ITEM { str = "B&W";  },
+		CHOICE_ITEM { str = "Gray"; }
+	};
+}
+
+RESOURCE MENU mapping_modes
+{
+	items = 
+	{
+		CHOICE_ITEM	{ str = "Pan";    },
+		CHOICE_ITEM	{ str = "Shrink"; },
+		CHOICE_ITEM	{ str = "Fit";    }
+	};
+}
+
+RESOURCE MENU joy_types
+{
+	items = 
+	{
+		CHOICE_ITEM { str = "None";	  },
+		CHOICE_ITEM { str = "Kempston";   },
+		CHOICE_ITEM { str = "Sinclair 1"; },
+		CHOICE_ITEM { str = "Sinclair 2"; },
+		CHOICE_ITEM { str = "Cursor";     },
+		CHOICE_ITEM { str = "Fuller";	  }
+	};
+}
+
+RESOURCE DIALOG open_file_dialog
+{
+	title = "Open file";
+	flags = DLGBOX_NOTIFY_ENTER; 
+	controls=
+    {	
+		CONTROL
+        {
+			class = C_FNSELWN;
+			flags = DLGBOX_ITEM_NEEDS_PACK | DLGBOX_ITEM_NOTIFY_CHANGED; 
+			prompt = "File:";
+			info = FNSELWN { flags = IN_FNSELWN_RESTRICT_LIST; };
+		},
+
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = DLGBOX_ITEM_NOTIFY_CHANGED;
+			prompt = "File type";
+			info = CHLIST { rid = file_types; };
+		}
+	};
+}
+
+RESOURCE DIALOG save_file_dialog
+{
+	title = "Save as";
+	flags = DLGBOX_NOTIFY_ENTER | DLGBOX_RBUF_FILLED;
+	controls =
+	{
+		CONTROL
+		{
+			class = C_FNEDIT;
+			flags = DLGBOX_ITEM_NEEDS_PACK;
+			prompt = "File:";
+			info = FNEDIT { flags = IN_FNEDIT_STANDARD; };
+		},
+
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = DLGBOX_ITEM_NOTIFY_CHANGED;
+			prompt = "File type";
+			info = CHLIST { rid = file_types; };
+		}
+	};
+}  
+
+RESOURCE DIALOG viewmode_dialog
+{
+	title = "Set view mode";
+	flags = DLGBOX_NOTIFY_ENTER;
+	controls=
+	{
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = 0;
+			prompt = "Color mode";
+			info = CHLIST { rid = color_modes; };
+		},
+
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = 0;
+			prompt = "Mapping mode";
+			info = CHLIST { rid = mapping_modes; };
+		},
+
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = 0;
+			prompt = "Draw border";
+			info = CHLIST { rid = -SYS_OFFON_MENU; };
+		}
+	};
+}
+
+RESOURCE DIALOG	prefs_dialog
+{
+	title = "Set preferences";
+	flags = DLGBOX_NOTIFY_ENTER;
+	controls = 
+	{
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = 0;
+			prompt = "Joystick";
+			info = CHLIST { rid = joy_types; };
+		},
+
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = DLGBOX_ITEM_UNDERLINED;
+			prompt = "Key clicks";
+			info = CHLIST { rid = -SYS_OFFON_MENU; };
+		},
+		
+		CONTROL
+		{	
+			class = C_NCEDIT;
+			flags = 0;
+			prompt = "Screen refresh";
+			info = NCEDIT { low = 1; high = 50; current = 4; };
+		},
+		
+		CONTROL
+		{
+			class = C_NCEDIT;
+			flags = 0;
+			prompt = "Ops per INT";
+			info = NCEDIT { low = 1; high = 50000; current = 5000; };
+		},
+
+		CONTROL
+		{
+			class = C_CHLIST;
+			flags = 0;
+			prompt = "ROM patch";
+			info = CHLIST { rid = -SYS_OFFON_MENU; };
+		}
+	};
+}
+
+RESOURCE DIALOG about_dialog
+{
+	title = "About ZXemul";
+	flags = 0;
+	controls = 
+	{
+		CONTROL
+		{
+			class = C_TEXTWIN;
+			flags = DLGBOX_ITEM_CENTRE | DLGBOX_ITEM_DEAD;
+			info = TXTMESS 
+			{ 
+				flags = IN_TEXTWIN_AL_CENTRE;
+				str = "version 1.0";
+			};
+		},
+
+		CONTROL
+		{
+			class = C_TEXTWIN;
+			flags = DLGBOX_ITEM_CENTRE | DLGBOX_ITEM_DEAD | DLGBOX_ITEM_UNDERLINED;
+			info = TXTMESS
+			{
+				flags = IN_TEXTWIN_AL_CENTRE;
+				str = "(c) 2000 Freeman";
+			};
+		},
+
+		CONTROL
+		{
+			class = C_TEXTWIN;
+			flags = DLGBOX_ITEM_CENTRE | DLGBOX_ITEM_DEAD;
+			info = TXTMESS
+			{
+				flags = IN_TEXTWIN_AL_CENTRE;
+				str = "http://freeman.web2001.cz";
+			};
+		}
+	};
+}
+
+RESOURCE STRING str_loading	{ str = "Loading"; }
+RESOURCE STRING str_saving  { str = "Saving"; }
+RESOURCE STRING str_paused  { str = "  Paused  "; }
+
+RESOURCE HELP_ARRAY zxemul_help
+{
+	topic = "ZXemul";
+	topic_id = zxemul_help_index;
+}
+
+RESOURCE TOPIC_ARRAY zxemul_help_index
+{
+	id_lst =
+	{
+		zxhlp_keys,
+		zxhlp_formats,
+		zxhlp_color,
+		zxhlp_map,
+		zxhlp_preferences
+	};
+}
+
+
+RESOURCE HELP_ARRAY zxhlp_keys
+{
+	topic = "Keyboard";
+	strlst = 
+	{
+		STRING { str = "Spectrum keys are mapped onto the corresponding"; },
+		STRING { str = "Psion keys with CAPS SHIFT on left Shift and"; },
+		STRING { str = "SYMBOL SHIFT on right Shift. The rest of Psion keys"; },
+		STRING { str = "generate the relevant combination of Spectrum keys."; },
+		STRING { str = ""; },
+		STRING { str = "Use Esc to pause the emulation."; },
+		STRING { str = "Use "<2>"-K to see the Spectrum keyboard layout."; },
+		STRING { str = ""; },
+		STRING { str = "Joystick is mapped onto arrows with fire on the Tab."; }
+	};
+}
+
+RESOURCE HELP_ARRAY zxhlp_formats
+{
+	topic = "File formats";
+	strlst = 
+	{
+		STRING { str = "You can save and load the emulator state into Z80"; },
+		STRING { str = "and SNA memory snapshot file formats. Choose the"; },
+		STRING { str = "appropriate format in the Open or Save dialogs."; },
+		STRING { str = ""; },
+		STRING { str = "Note that only Z80 files will appear under the"; },
+		STRING { str = "ZXemul icon in the System screen. Create new list"; },
+		STRING { str = "for ZXemul to view the SNA files too."; }, 
+		STRING { str = ""; },
+		STRING { str = "Only ZX Spectrum 48k snapshots are supported."; },
+		STRING { str = ""; },
+		STRING { str = "Use New file command to start a new emulation."; }
+	};
+}
+
+RESOURCE HELP_ARRAY zxhlp_color
+{
+	topic = "Color modes";
+	strlst = 
+	{
+		STRING { str = "You can choose between 3 different color modes:"; },
+		STRING { str = ""; },
+		STRING { str = "Ink - Only INK is shown. Spectrum attributes are"; }, 
+		STRING { str = "ignored. No border is drawn. The fastest mode."; },
+		STRING { str = ""; },
+		STRING { str = "B&W - 2 color mode. Darker color in each attribute"; }, 
+		STRING { str = "is mapped into black, the other one to white."; },
+		STRING { str = ""; },
+		STRING { str = "Gray - 3 color mode. Colors are uniformly mapped"; },
+		STRING { str = "into black, gray and white. The slowest mode."; },
+		STRING { str = ""; },
+		STRING { str = "Use "<4>" or "<2>"-M to switch between color modes."; }
+	};
+}
+
+RESOURCE HELP_ARRAY zxhlp_map
+{
+	topic = "Mapping modes";
+	strlst = 
+	{
+		STRING { str = "You can choose between 3 different mapping modes:"; },
+		STRING { str = ""; },
+		STRING { str = "Pan - Only a part of Spectrum screen is shown."; },
+		STRING { str = "The screen is not shrunk. 32 rows are missing."; },
+		STRING { str = ""; },
+		STRING { str = "Shrink - Each eighth pixel row is omitted to shrink"; },
+		STRING { str = "the screen. Still 8 rows are missing."; },
+		STRING { str = ""; },
+		STRING { str = "Fit - The Spectrum screen is even more shrunk"; },
+		STRING { str = "to fit it completely into the Psion one."; },
+		STRING { str = ""; },
+		STRING { str = "Use Shift-"<4>" or "<2>"-M to switch between mapping modes."; },
+		STRING { str = "In Pan and Shrink mode, use "<2>"-"<30>" and "<2>"-"<13>" to pan"; },
+		STRING { str = "the window up and down to see the missing rows."; }
+	};
+}
+
+RESOURCE HELP_ARRAY zxhlp_preferences
+{
+	topic = "Preferences";
+	strlst = 
+	{
+		STRING { str = "You can choose between 5 different joystick simulations."; },
+		STRING { str = ""; },
+		STRING { str = "Set Key clicks on if you want to hear a standard Psion"; },
+		STRING { str = "click on each key pressed (but this may not correspond"; },
+		STRING { str = "to a new key sensed by the emulated program)."; },
+		STRING { str = ""; },
+		STRING { str = "The Screen refresh parameter sets the number of INTs"; },
+		STRING { str = "generated before the screen is updated."; },
+		STRING { str = ""; },
+		STRING { str = "The Ops per INT parameter sets the number of emulated"; },
+		STRING { str = "instructions before the INT is generated."; },
+		STRING { str = ""; },
+		STRING { str = "If ROM patch is set on, the original Spectrum ROM is"; },
+		STRING { str = "patched to prevent ROM code from modifying itself. You"; },
+		STRING { str = "must restart the ZXemul to apply this setting."; }
+	};
+}
+
+RESOURCE ZXKEYMAP zxemul_keymap
+{
+	items =
+	{ 
+		ZXKEY { let = "1";	sym = "#";		key = "   !";		up = "EDIT";	low = "DEF FN";		},
+		ZXKEY { let = "2";	sym = "#";		key = "   @";		up = "CAPS";	low = "FN";			},
+		ZXKEY { let = "3";	sym = "#";		key = "   #";		up = "TRU VID"; low = "LINE";		},
+		ZXKEY { let = "4";	sym = "#";		key = "   $";		up = "INV VID"; low = "OPEN#";		},
+		ZXKEY { let = "5";	sym = "#";		key = "   %";		up = "  "<27>;	low = "CLOSE#";		},
+		ZXKEY { let = "6";	sym = "#";		key = "   &";		up = "  "<25>;	low = "MOVE";		},
+		ZXKEY { let = "7";	sym = "#";		key = "   '";		up = "  "<24>;	low = "ERASE";		},
+		ZXKEY { let = "8";	sym = "#";		key = "   (";		up = "  "<26>;	low = "POINT";		},
+		ZXKEY { let = "9";	sym = "";		key = "   )";		up = "GRAPH";	low = "CAT";		},
+		ZXKEY { let = "0";	sym = "";		key = "   _";		up = "DELETE";	low = "FORMAT";		},
+
+		ZXKEY { let = "Q";	sym = " <=";	key = " PLOT";		up = "SIN";		low = "ASN";		},
+		ZXKEY { let = "W";	sym = " <>";	key = " DRAW";		up = "COS";		low = "ACS";		},
+		ZXKEY { let = "E";	sym = " >=";	key = " REM";		up = "TAN";		low = "ATN";		},
+		ZXKEY { let = "R";	sym = " <";		key = " RUN";		up = "INT";		low = "VERIFY";		},
+		ZXKEY { let = "T";	sym = " >";		key = " RAND";		up = "RND";		low = "MERGE";		},
+		ZXKEY { let = "Y";	sym = " AND";	key = "RETURN";		up = "STR$";	low = "[";			},
+		ZXKEY { let = "U";	sym = " OR";	key = " IF";		up = "CHR$";	low = "]";			},
+		ZXKEY { let = "I";	sym = " AT";	key = " INPUT";		up = "CODE";	low = "IN";			},
+		ZXKEY { let = "O";	sym = " ;";		key = " POKE";		up = "PEEK";	low = "OUT";		},
+		ZXKEY { let = "P";	sym = " \"";	key = " PRINT";		up = "TAB";		low = <184>;		},
+
+		ZXKEY { let = "A";	sym = "STOP";	key = " NEW";		up = "READ";	low = "~";			},
+		ZXKEY { let = "S";	sym = " NOT";	key = " SAVE";		up = "RESTORE"; low = "|";			},
+		ZXKEY { let = "D";	sym = "STEP";	key = " DIM";		up = "DATA";	low = "\\";			},
+		ZXKEY { let = "F";	sym = " TO";	key = " FOR";		up = "SGN";		low = "{";			},
+		ZXKEY { let = "G";	sym = "THEN";	key = " GOTO";		up = "ABS";		low = "}";			},
+		ZXKEY { let = "H";	sym = " ^";		key = " GOSUB";		up = "SQR";		low = "CIRCLE";		},
+		ZXKEY { let = "J";	sym = " -";		key = " LOAD";		up = "VAL";		low = "VAL$";		},
+		ZXKEY { let = "K";	sym = " +";		key = " LIST";		up = "LEN";		low = "SCREEN$";	},
+		ZXKEY { let = "L";	sym = " =";		key = " LET";		up = "USR";		low = "ATTR";		},
+		ZXKEY { let = "";	sym = "";		key = "";			up = "";		low = "";			},
+
+		ZXKEY { let = "";	sym = "";		key = "";			up = "";		low = "";			},
+		ZXKEY { let = "Z";	sym = ":";		key = " COPY";		up = "LN";		low = "BEEP";		},
+		ZXKEY { let = "X";	sym = " "<156>; key = " CLEAR";		up = "EXP";		low = "INK";		},
+		ZXKEY { let = "C";	sym = " ?";		key = " CONT";		up = "LPRINT";	low = "PAPER";		},
+		ZXKEY { let = "V";	sym = " /";		key = " CLS";		up = "LLIST";	low = "FLASH";		},
+		ZXKEY { let = "B";	sym = " *";		key = "BORDER";		up = "BIN";		low = "BRIGHT";		},
+		ZXKEY { let = "N";	sym = " ,";		key = " NEXT";		up = "INKEY$";	low = "OVER";		},
+		ZXKEY { let = "M";	sym = " .";		key = " PAUSE";		up = "PI";		low = "INVERSE";	},
+		ZXKEY { let = "";	sym = "";		key = "";			up = "";		low = "";			},
+		ZXKEY { let = "";	sym = "";		key = "";			up = "";		low = "";			}
+	};
+}   
