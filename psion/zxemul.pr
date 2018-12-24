@@ -9,7 +9,7 @@
 #pragma option(uns_char=>on)
 #pragma link_option(share_const=>on)
 #pragma warn(wclt=>on,wfnd=>on,wpnd=>on,wnrv=>on)
-#pragma debug(vid=>off)
+#pragma debug(vid=>full)
 #pragma define(EPOC=>1,JPIC=>1)
 
 #pragma link(olib.lib)
