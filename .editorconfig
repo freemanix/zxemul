@@ -1,0 +1,11 @@
+# http://editorconfig.org
+
+root = true
+
+[*]
+indent_style = tab
+indent_size = 8
+
+[*.{c,h,rss,cat}]
+indent_style = tab
+indent_size = 4
